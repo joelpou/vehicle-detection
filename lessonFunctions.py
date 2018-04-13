@@ -226,6 +226,14 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
         cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
     # Return the image copy with boxes drawn
     return imcopy   
+
+def create_windows(triangle, image_size):
+    output = []
+    for w_size, y_lims in pyramid:
+        windows = slide_window(image_size, x_start_stop=[None, None], y_start_stop=y_lims,
+                        xy_window=w_size, xy_overlap=(0.5, 0.5))
+        output.append(windows)
+    return output
     
 
 # Define a function that takes an image,
