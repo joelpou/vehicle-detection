@@ -192,7 +192,7 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
                     hist_range=(0, 256), orient=9, 
                     pix_per_cell=8, cell_per_block=2, 
                     hog_channel=0, spatial_feat=True, 
-                    hist_feat=True, hog_feat=True):
+                    hist_feat=True, hog_feat=True, dec_threshold=0.5):
 
     #1) Create an empty list to receive positive detection windows
     on_windows = []
@@ -210,7 +210,10 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
         #5) Scale extracted features to be fed to classifier
         test_features = scaler.transform(np.array(features).reshape(1, -1))
         #6) Predict using your classifier
-        prediction = clf.predict(test_features)
+        dec = clf.decision_function(test_features)
+        prediction = int(dec > dec_threshold)
+
+#         prediction = clf.predict(test_features)
         #7) If positive (prediction == 1) then save the window
         if prediction == 1:
             on_windows.append(window)
@@ -225,32 +228,26 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
         # Draw a rectangle given bbox coordinates
         cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
     # Return the image copy with boxes drawn
-    return imcopy   
-
-def create_windows(triangle, image_size):
-    output = []
-    for w_size, y_lims in pyramid:
-        windows = slide_window(image_size, x_start_stop=[None, None], y_start_stop=y_lims,
-                        xy_window=w_size, xy_overlap=(0.5, 0.5))
-        output.append(windows)
-    return output
-    
+    return imcopy     
 
 # Define a function that takes an image,
 # start and stop positions in both x and y, 
 # window size (x and y dimensions),  
 # and overlap fraction (for both x and y)
-def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None], 
+def slide_window(img_shape, x_start_stop=[None, None], y_start_stop=[None, None], 
                     xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
     # If x and/or y start/stop positions not defined, set to image size
     if x_start_stop[0] == None:
         x_start_stop[0] = 0
     if x_start_stop[1] == None:
-        x_start_stop[1] = img.shape[1]
+#         x_start_stop[1] = img.shape[1]
+        x_start_stop[1] = img_shape[1]
     if y_start_stop[0] == None:
         y_start_stop[0] = 0
     if y_start_stop[1] == None:
-        y_start_stop[1] = img.shape[0]
+#         y_start_stop[1] = img.shape[0]
+        y_start_stop[1] = img_shape[0]
+
         
 #     print("img.shape[0]: ", img.shape[0])
 #     print("img.shape[1]: ", img.shape[1])
@@ -317,6 +314,23 @@ def apply_threshold(heatmap, threshold):
     # Return thresholded map
     return heatmap
 
+def update_heatmap(candidates, image_shape, heatmap = None):
+    if heatmap is None:
+        heatmap = np.zeros((image_shape[0], image_shape[1]), np.uint8)
+
+    for pt1, pt2 in candidates:
+        x1, y1 = pt1
+        x2, y2 = pt2
+        x1 = min(max(x1, 0), image_shape[1])
+        x2 = min(max(x2, 0), image_shape[1])
+        y1 = min(max(y1, 0), image_shape[0])
+        y2 = min(max(y2, 0), image_shape[0])
+        xv, yv = np.meshgrid(range(x1, x2), range(y1, y2))
+
+        heatmap[yv, xv] += 1
+
+    return heatmap
+
 def draw_labeled_bboxes(img, labels):
     # Iterate through all detected cars
     for car_number in range(1, labels[1]+1):
@@ -331,6 +345,14 @@ def draw_labeled_bboxes(img, labels):
         cv2.rectangle(img, bbox[0], bbox[1], (255,0,0), 8)
     # Return the image
     return img
+
+def create_windows(triangle, image_size):
+    output = []
+    for w_size, y_lims in triangle:
+        windows = slide_window(image_size, x_start_stop=[None, None], y_start_stop=y_lims,
+                        xy_window=w_size, xy_overlap=(0.5, 0.5))
+        output.append(windows)
+    return output
 
 def convert_color(img, conv='RGB2YCrCb'):
     if conv == 'RGB2YCrCb':
@@ -355,3 +377,26 @@ def data_look(car_list, notcar_list):
     data_dict["data_type"] = example_img.dtype
     # Return data_dict
     return data_dict
+
+def car_detect(image, clf, config, windows, pred_thres):
+
+    color_space = config['color_space']
+    spatial_size = config['spatial_size']
+    hist_bins = config['hist_bins']
+    orient = config['orient']
+    pix_per_cell = config['pix_per_cell']
+    cell_per_block = config['cell_per_block']
+    hog_channel = config['hog_channel']
+    spatial_feat = config['spatial_feat']
+    hist_feat = config['hist_feat']
+    hog_feat = config['hog_feat']
+    x_scaler = config['X_scaler']
+
+    detected = search_windows(image, windows, clf, x_scaler, color_space=color_space,
+                        spatial_size=spatial_size, hist_bins=hist_bins,
+                        orient=orient, pix_per_cell=pix_per_cell,
+                        cell_per_block=cell_per_block,
+                        hog_channel=hog_channel, spatial_feat=spatial_feat,
+                        hist_feat=hist_feat, hog_feat=hog_feat, dec_threshold = pred_thres)
+
+    return detected
