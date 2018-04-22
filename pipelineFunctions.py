@@ -379,7 +379,7 @@ def data_look(car_list, notcar_list):
     # Return data_dict
     return data_dict
 
-def car_detect(image, clf, config, windows, pred_thres):
+def window_detect(image, clf, config, windows, pred_thres):
 
     color_space = config['color_space']
     spatial_size = config['spatial_size']
@@ -518,4 +518,3 @@ def car_detect(image, clf, config, windows, pred_thres):
 #                                   (xbox_left+win_draw,ytop_draw+win_draw+ystart)))
 
 #     return draw_img
-
