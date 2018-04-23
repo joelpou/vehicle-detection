@@ -33,17 +33,17 @@ I started by reading in all the `vehicle` and `non-vehicle` images on the second
 
 ![alt text][image1]
 
-`pipelineFunctions.py`, contains all the helper functions used to run this pipeline, including the `extract_features()` and `single_img_features()` functions. The former helps me extract car and non-car features to train my SVC. The latter is a similar implementation of the other one but for single images. It will be used for  For these I'm using Udacity's Vehicle Tracking datasets. HOG parameters chosen were `orientations of 14`, `pixels per cell of 8`, `cells per block of 4` and `0 channels`. On the eighth cell I added some code to visualize HOG feature extraction for car and non-car datasets like so:
+`pipelineFunctions.py`, contains all the helper functions used to run this pipeline, including the `extract_features()` and `single_img_features()` functions. The former helps me extract car and non-car features to train my SVC. The latter is a similar implementation of the other one but for single images. It will be used for  For these I'm using Udacity's Vehicle Tracking datasets. HOG parameters chosen were `orientations of 9`, `pixels per cell of 8`, `cells per block of 2` and `ALL channels`. On the eighth cell I added some code to visualize HOG feature extraction for car and non-car datasets like so:
 
 ![alt text][image2]
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-At first I tried various combinations of parameters using a combination of spatial binning with color histogram and hog feature extraction. I mostly used a colorspace of `YUV`, `LUV`, `YCrCb` and `GRAY` to experiment. For color parameters I used a spatial size of 32 and 32 or 64 histogram bins, and a histogram range of (0, 256). HOG parameters like orientations and pixels per cell I varied between 8 and 16 while cells per block varied between 1 and 4 and   ...
+At first I tried various combinations of parameters using a combination of spatial binning with color histogram and hog feature extraction. I mostly used a colorspace of `YUV`, `LUV`, `YCrCb` and `GRAY` to experiment. For color parameters I used a `spatial size of 32x32` and `128 histogram bins`. HOG parameters like orientations and pixels per cell I varied between 8 and 16 while cells per block varied between 1 and 4 and   ...
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a simple linear SVM using sklearn's LinearSVC. Code can be found at cell number six of `carDetection.ipynb`. I split the data on previous cell using 20% for testing set. Using `GRAY zero channel HOG` I was able to achieve an accuracy of 96%. I tried various combinations of `YUV` but got better car detection with `GRAY` on video pipeline. Still trying to figure out why...
+I trained a simple linear SVM using sklearn's LinearSVC. Code can be found at cell number six of `carDetection.ipynb`. I split the data on previous cell using 20% for testing set. Using `YCrCb ALL channel HOG` I was able to achieve an accuracy of 99%. I tried various combinations of `YUV`, `GRAY` and `HSV` but got better car detection with `YCrCb` on video pipeline. Still trying to figure out why...
 
 ### Sliding Window Search
 
@@ -54,7 +54,7 @@ I decided to search in lower areas of the picture where cars are more likely to 
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched windos using GRAY zero-channel HOG features, which provided a nice result. To optimize the performance I turned off spatial and histogram feature extraction. Not only did it save time, but classifier greatly improved.
+Ultimately I searched windosWS using YCrCb all-channel HOG features, which provided a decent result. To optimize the performance I turned off spatial and histogram feature extraction. Not only did it save time, but classifier greatly improved.
 
 ### Video Implementation
 
@@ -64,7 +64,7 @@ Here's a [link to my video result](./test_video_out.mp4)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive thresholded detections I created a cache on fourth cell of `carDetection.ipynb` using `collections.deque`. I then use `itertools.chain` to iterate previous window results stored on `params` dictionary onto a single sequence.  I then run `car_detect()` which launches `search_window()` for each frame of the video. Afterwards, heatmaps are updated and cached instances are appended to list,  thresholded and blurred. With this I generated labels and with these labels I draw boxes. For video pipeline I usued a cache length of 150 and a heatmap threshold of 100.
+I recorded the positions of positive detections in each frame of the video.  From the positive thresholded detections I created a cache on fourth cell of `carDetection.ipynb` using `collections.deque`. I then use `itertools.chain` to iterate previous window results stored on `params` dictionary onto a single sequence.  I then run `window_detect()` which launches `search_window()` for each frame of the video. Afterwards, heatmaps are updated and cached instances are appended to list,  thresholded and blurred. With this I generated labels and with these labels I draw boxes. For video pipeline I usued a cache length of 110 and a heatmap threshold of 14. I also implemented a `decision function` threshold.
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
